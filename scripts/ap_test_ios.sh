@@ -99,7 +99,14 @@ ignore_broadcast_ssid=0
 # Logging
 logger_syslog=-1
 logger_syslog_level=2
+
+# Control interface - needed for some drivers to handle auth
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
 EOF
+
+# Create control interface dir
+mkdir -p /var/run/hostapd
 
 # Optionally add 802.11d
 if [[ "$USE_80211D" == "1" ]]; then
