@@ -68,12 +68,24 @@ driver=nl80211
 ssid=$SSID
 hw_mode=g
 channel=$CHANNEL
+
+# Auth
 auth_algs=1
 wpa=2
 wpa_passphrase=$PASSPHRASE
 wpa_key_mgmt=WPA-PSK
+wpa_pairwise=CCMP
 rsn_pairwise=CCMP
+
+# Required for iOS
+wmm_enabled=1
+
+# Broadcast
 ignore_broadcast_ssid=0
+
+# Logging
+logger_syslog=-1
+logger_syslog_level=2
 EOF
 
 # Optionally add 802.11d
