@@ -165,7 +165,7 @@ def main():
     
     # Generate or load certs
     cert_dir = Path(args.cert_dir)
-    domains = ["api.stickerbox.com", "ws.stickerbox.com", "localhost"]
+    domains = ["ws.stickerbox.com", "localhost"]
     cert_file, key_file = generate_self_signed_cert(cert_dir, domains)
     
     # Create SSL context
