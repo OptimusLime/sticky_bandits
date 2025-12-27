@@ -42,6 +42,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Apply mt76 fix if not already done
+if [[ ! -f /etc/modprobe.d/mt76_usb.conf ]]; then
+  info "Applying mt76_usb driver fix (disable_usb_sg=1)..."
+  echo "options mt76_usb disable_usb_sg=1" > /etc/modprobe.d/mt76_usb.conf
+  info "Reloading mt76 driver..."
+  modprobe -r mt76x2u 2>/dev/null || true
+  sleep 2
+  modprobe mt76x2u
+  sleep 2
+fi
+
 # Kill everything that could hold the interface
 info "Killing interfering processes..."
 systemctl stop hostapd 2>/dev/null || true
@@ -52,6 +63,18 @@ pkill -9 dnsmasq 2>/dev/null || true
 pkill -9 wpa_supplicant 2>/dev/null || true
 rfkill unblock wifi 2>/dev/null || true
 sleep 1
+
+# Tell NetworkManager to ignore our interface permanently
+if ! grep -q "unmanaged-devices=interface-name:$AP_IFACE" /etc/NetworkManager/NetworkManager.conf 2>/dev/null; then
+  info "Configuring NetworkManager to ignore $AP_IFACE..."
+  if [[ -f /etc/NetworkManager/NetworkManager.conf ]]; then
+    if grep -q "\[keyfile\]" /etc/NetworkManager/NetworkManager.conf; then
+      sed -i "/\[keyfile\]/a unmanaged-devices=interface-name:$AP_IFACE" /etc/NetworkManager/NetworkManager.conf
+    else
+      echo -e "\n[keyfile]\nunmanaged-devices=interface-name:$AP_IFACE" >> /etc/NetworkManager/NetworkManager.conf
+    fi
+  fi
+fi
 
 # Set regulatory domain
 iw reg set US 2>/dev/null || true
@@ -96,9 +119,9 @@ ignore_broadcast_ssid=0
 ctrl_interface=/var/run/hostapd
 ctrl_interface_group=0
 
-# nl80211 driver options for mt76
+# mt7612u specific settings from morrownr guide
 ieee80211n=1
-ht_capab=[HT40+][SHORT-GI-40][TX-STBC][RX-STBC1]
+ht_capab=[HT40+][HT40-][GF][SHORT-GI-20][SHORT-GI-40]
 
 # Logging
 logger_syslog=-1
