@@ -67,16 +67,9 @@ rm -f /etc/netplan/99-sticky-bandits.yaml
 # Clear DHCP leases to avoid stale entries
 rm -f /var/lib/misc/dnsmasq.leases
 
-# --- Clean up BOTH wifi interfaces ---
-info "Resetting wifi interfaces..."
-for IFACE in "$AP_IFACE" "$UPLINK_IFACE"; do
-  # Skip if not a wifi interface
-  if ! iw dev "$IFACE" info >/dev/null 2>&1; then
-    continue
-  fi
-  # Remove from AP mode if in it
-  ip addr flush dev "$IFACE" 2>/dev/null || true
-done
+# --- Clean up AP interface only (don't touch uplink!) ---
+info "Resetting AP interface $AP_IFACE..."
+ip addr flush dev "$AP_IFACE" 2>/dev/null || true
 
 # --- Make sure uplink is connected and has internet ---
 info "Ensuring uplink $UPLINK_IFACE is connected..."
