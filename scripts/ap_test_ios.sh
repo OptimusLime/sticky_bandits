@@ -69,8 +69,8 @@ ssid=$SSID
 hw_mode=g
 channel=$CHANNEL
 
-# Auth - allow both open system and shared key
-auth_algs=3
+# Auth
+auth_algs=1
 wpa=2
 wpa_passphrase=$PASSPHRASE
 wpa_key_mgmt=WPA-PSK
