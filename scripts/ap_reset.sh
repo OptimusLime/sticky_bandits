@@ -41,17 +41,22 @@ info "Restarting NetworkManager..."
 systemctl restart NetworkManager || true
 
 info "Waiting for NetworkManager to settle..."
-sleep 5
+sleep 3
+
+info "Scanning for wifi networks..."
+for IFACE in $(iw dev 2>/dev/null | grep Interface | awk '{print $2}'); do
+  nmcli dev wifi rescan ifname "$IFACE" 2>/dev/null || true
+done
+sleep 3
 
 info "Restarting Tailscale..."
 systemctl restart tailscaled 2>/dev/null || true
 
 ok "Reset complete."
 echo ""
-echo "Current wifi status:"
-nmcli dev status | grep -E "wifi|DEVICE" || true
+echo "Available wifi networks:"
+nmcli dev wifi list 2>/dev/null | head -20 || true
 echo ""
-echo "To reconnect wifi interfaces:"
-echo "  nmcli dev wifi list"
-echo "  sudo nmcli dev wifi connect \"SSID\" password \"pass\" ifname <interface>"
+echo "Current interface status:"
+nmcli dev status | grep -E "wifi|DEVICE" || true
 echo ""
