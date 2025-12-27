@@ -65,6 +65,19 @@ if ! systemctl is-active --quiet dnsmasq; then
 fi
 ok "dnsmasq running with intercept"
 
+# Step 3b: Verify AP is still working after dnsmasq restart
+info "Verifying AP is still broadcasting..."
+if ! iw dev wlx00c0cab9645b info 2>/dev/null | grep -q "type AP"; then
+    iw dev wlx00c0cab9645b info || true
+    die "AP interface is no longer in AP mode!"
+fi
+
+if ! iw dev wlx00c0cab9645b info 2>/dev/null | grep -q "ssid sticky_bandits"; then
+    iw dev wlx00c0cab9645b info || true
+    die "AP is not broadcasting SSID!"
+fi
+ok "AP still broadcasting sticky_bandits"
+
 # Step 4: Verify
 info "Verifying DNS override..."
 RESOLVED=$(dig +short ws.stickerbox.com @127.0.0.1 2>/dev/null | head -1 || true)
