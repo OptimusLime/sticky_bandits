@@ -173,4 +173,30 @@ else
 fi
 
 echo ""
+echo "[22] Testing if traffic can flow from AP subnet to internet:"
+echo "    Simulating packet from 192.168.60.x via iptables..."
+# Check if MASQUERADE is working by verifying conntrack
+if command -v conntrack >/dev/null 2>&1; then
+  echo "    Recent NAT connections:"
+  conntrack -L 2>/dev/null | grep "192.168.60" | head -5 || echo "    No NAT entries for 192.168.60.x"
+else
+  echo "    conntrack not installed, skipping"
+fi
+
+echo ""
+echo "[23] Can we reach api.stickerbox.com from this host?"
+echo "    DNS resolution:"
+host api.stickerbox.com 2>/dev/null | head -3 || nslookup api.stickerbox.com 2>/dev/null | head -5 || echo "    DNS lookup failed"
+echo "    HTTPS connectivity:"
+curl -s -o /dev/null -w "    HTTP status: %{http_code}, Time: %{time_total}s\n" --connect-timeout 5 https://api.stickerbox.com/ 2>/dev/null || echo "    curl failed or timed out"
+
+echo ""
+echo "[24] Checking for blocked traffic in iptables:"
+iptables -L -v -n 2>/dev/null | grep -E "DROP|REJECT" | head -10 || echo "    No DROP/REJECT rules found"
+
+echo ""
+echo "[25] Recent kernel network errors:"
+dmesg 2>/dev/null | grep -iE "dropped|refused|unreachable|martian" | tail -5 || echo "    No recent errors"
+
+echo ""
 echo "=== End Diagnostic ==="
