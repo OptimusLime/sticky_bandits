@@ -69,8 +69,8 @@ ssid=$SSID
 hw_mode=g
 channel=$CHANNEL
 
-# Auth
-auth_algs=1
+# Auth - allow both open system and shared key
+auth_algs=3
 wpa=2
 wpa_passphrase=$PASSPHRASE
 wpa_key_mgmt=WPA-PSK
@@ -80,12 +80,20 @@ rsn_pairwise=CCMP
 # Required for iOS
 wmm_enabled=1
 
+# Max stations
+max_num_sta=10
+
 # Broadcast
 ignore_broadcast_ssid=0
 
-# Logging
+# Accept all MAC addresses
+macaddr_acl=0
+
+# Logging - max verbosity
 logger_syslog=-1
-logger_syslog_level=2
+logger_syslog_level=0
+logger_stdout=-1
+logger_stdout_level=0
 EOF
 
 # Optionally add 802.11d
