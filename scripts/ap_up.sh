@@ -224,21 +224,25 @@ echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-sticky-bandits.conf
 # --- Configure iptables ---
 info "Configuring iptables..."
 
-# Forwarding chain: allow traffic between AP and uplink
+# Forwarding chain: allow traffic between AP and ANY outbound interface
+# (needed because return traffic might come via different interface due to routing)
 iptables -N SB_FORWARD 2>/dev/null || true
 iptables -F SB_FORWARD
 iptables -I FORWARD 1 -j SB_FORWARD
-# Traffic from uplink to AP (responses)
-iptables -A SB_FORWARD -i "$UPLINK_IFACE" -o "$AP_IFACE" -m state --state RELATED,ESTABLISHED -j ACCEPT
-# Traffic from AP to uplink (requests)
-iptables -A SB_FORWARD -i "$AP_IFACE" -o "$UPLINK_IFACE" -j ACCEPT
+# Allow all traffic FROM AP interface to go anywhere
+iptables -A SB_FORWARD -i "$AP_IFACE" -j ACCEPT
+# Allow established/related traffic TO AP interface from anywhere
+iptables -A SB_FORWARD -o "$AP_IFACE" -m state --state RELATED,ESTABLISHED -j ACCEPT
 iptables -A SB_FORWARD -j RETURN
 
-# NAT chain: masquerade outbound traffic
+# NAT chain: masquerade outbound traffic on ALL potential uplink interfaces
 iptables -t nat -N SB_POSTROUTING 2>/dev/null || true
 iptables -t nat -F SB_POSTROUTING
 iptables -t nat -I POSTROUTING 1 -j SB_POSTROUTING
-iptables -t nat -A SB_POSTROUTING -o "$UPLINK_IFACE" -j MASQUERADE
+# Masquerade on the specified uplink
+iptables -t nat -A SB_POSTROUTING -s 192.168.60.0/24 -o "$UPLINK_IFACE" -j MASQUERADE
+# Also masquerade if traffic goes out enp5s0 (ethernet might be preferred route)
+iptables -t nat -A SB_POSTROUTING -s 192.168.60.0/24 -o enp5s0 -j MASQUERADE
 iptables -t nat -A SB_POSTROUTING -j RETURN
 
 ok "iptables configured"
