@@ -56,23 +56,19 @@ sleep 1
 # Set regulatory domain
 iw reg set US 2>/dev/null || true
 
-# Force interface to AP mode BEFORE hostapd
-info "Setting interface to AP mode..."
+# Configure interface - let hostapd set AP mode
+info "Configuring interface..."
 ip link set "$AP_IFACE" down
 sleep 1
-iw dev "$AP_IFACE" set type __ap
+iw dev "$AP_IFACE" set type managed
 sleep 1
 ip addr flush dev "$AP_IFACE" 2>/dev/null || true
 ip addr add "$AP_ADDR/24" dev "$AP_IFACE"
 ip link set "$AP_IFACE" up
 sleep 1
 
-# Verify AP mode
-if iw dev "$AP_IFACE" info | grep -q "type AP"; then
-  info "Interface is in AP mode"
-else
-  die "Failed to set interface to AP mode"
-fi
+# Create control interface dir
+mkdir -p /var/run/hostapd
 
 # Build hostapd config
 cat > /etc/hostapd/hostapd.conf <<EOF
@@ -96,17 +92,18 @@ wmm_enabled=1
 # Broadcast
 ignore_broadcast_ssid=0
 
+# Control interface
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
+
+# nl80211 driver options for mt76
+ieee80211n=1
+ht_capab=[HT40+][SHORT-GI-40][TX-STBC][RX-STBC1]
+
 # Logging
 logger_syslog=-1
 logger_syslog_level=2
-
-# Control interface - needed for some drivers to handle auth
-ctrl_interface=/var/run/hostapd
-ctrl_interface_group=0
 EOF
-
-# Create control interface dir
-mkdir -p /var/run/hostapd
 
 # Optionally add 802.11d
 if [[ "$USE_80211D" == "1" ]]; then
