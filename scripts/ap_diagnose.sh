@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# No set -e, we want to continue even if commands fail
 
 # Diagnose AP issues - comprehensive
 
@@ -48,7 +48,7 @@ fi
 
 echo ""
 echo "[6] Regulatory domain:"
-iw reg get | head -10
+iw reg get 2>/dev/null | head -10 || echo "    Could not get regulatory domain"
 
 echo ""
 echo "[7] hostapd status:"
