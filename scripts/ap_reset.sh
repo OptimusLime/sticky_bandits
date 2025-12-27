@@ -2,19 +2,26 @@
 set -euo pipefail
 
 # Undo everything ap_up.sh did and restore normal network
+# Safe to run multiple times
 
-echo "[*] Removing sticky_bandits configs..."
+info() { echo "[*] $*"; }
+ok() { echo "[+] $*"; }
+
+AP_IFACE="${AP_IFACE:-wlp6s0}"
+
+info "Stopping services..."
+systemctl stop hostapd 2>/dev/null || true
+systemctl stop dnsmasq 2>/dev/null || true
+systemctl disable hostapd 2>/dev/null || true
+systemctl disable dnsmasq 2>/dev/null || true
+
+info "Removing config files..."
 rm -f /etc/netplan/99-sticky-bandits.yaml
 rm -f /etc/dnsmasq.d/sticky-bandits.conf
 rm -f /etc/dnsmasq.d/intercept.conf
+rm -f /etc/sysctl.d/99-sticky-bandits.conf
 
-echo "[*] Stopping hostapd and dnsmasq..."
-systemctl stop hostapd || true
-systemctl stop dnsmasq || true
-systemctl disable hostapd || true
-systemctl disable dnsmasq || true
-
-echo "[*] Removing iptables rules..."
+info "Removing iptables rules..."
 iptables -D FORWARD -j SB_FORWARD 2>/dev/null || true
 iptables -F SB_FORWARD 2>/dev/null || true
 iptables -X SB_FORWARD 2>/dev/null || true
@@ -22,22 +29,29 @@ iptables -t nat -D POSTROUTING -j SB_POSTROUTING 2>/dev/null || true
 iptables -t nat -F SB_POSTROUTING 2>/dev/null || true
 iptables -t nat -X SB_POSTROUTING 2>/dev/null || true
 
-echo "[*] Letting NetworkManager manage wlp6s0 again..."
-nmcli dev set wlp6s0 managed yes || true
+info "Resetting $AP_IFACE..."
+ip addr flush dev "$AP_IFACE" 2>/dev/null || true
+ip link set "$AP_IFACE" down 2>/dev/null || true
 
-echo "[*] Reapplying netplan..."
-netplan apply || true
+info "Returning $AP_IFACE to NetworkManager..."
+nmcli dev set "$AP_IFACE" managed yes 2>/dev/null || true
 
-echo "[*] Restarting NetworkManager..."
+info "Restarting NetworkManager..."
 systemctl restart NetworkManager || true
 
-echo "[*] Restarting Tailscale..."
-systemctl restart tailscaled || true
+info "Waiting for NetworkManager to settle..."
+sleep 3
 
+info "Restarting Tailscale..."
+systemctl restart tailscaled 2>/dev/null || true
+
+ok "Reset complete."
 echo ""
-echo "[+] Done. Now manually reconnect to WiFi:"
-echo "    nmcli dev wifi connect \"YouMeshedWithTheWrongWifi\" password \"<pass>\" ifname wlp6s0"
+echo "Your WiFi interfaces:"
+nmcli dev status | grep -E "wifi|DEVICE" || true
 echo ""
-echo "Then verify:"
+echo "To reconnect to home WiFi (if needed):"
+echo "    sudo nmcli dev wifi connect \"<SSID>\" password \"<pass>\" ifname <interface>"
+echo ""
+echo "To verify internet:"
 echo "    ping -c 2 8.8.8.8"
-echo "    tailscale status"
