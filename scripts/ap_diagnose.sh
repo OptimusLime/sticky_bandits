@@ -30,7 +30,31 @@ ip addr show "$AP_IFACE" | grep inet || echo "    NO IP ADDRESS ASSIGNED"
 
 echo ""
 echo "[4] Interface mode (should be 'type AP'):"
-iw dev "$AP_IFACE" info 2>/dev/null | grep -E "type|ssid" || echo "    Could not get info"
+iw dev "$AP_IFACE" info 2>/dev/null | grep -E "type|ssid|channel" || echo "    Could not get info"
+
+echo ""
+echo "[4b] Full interface info:"
+iw dev "$AP_IFACE" info 2>/dev/null || echo "    Could not get info"
+
+echo ""
+echo "[4c] Is interface actually transmitting? (check txpower):"
+iw dev "$AP_IFACE" info 2>/dev/null | grep -i txpower || echo "    No txpower info"
+
+echo ""
+echo "[4d] Interface link state:"
+ip link show "$AP_IFACE" 2>/dev/null || echo "    Could not get link state"
+
+echo ""
+echo "[4e] Any errors in dmesg about this interface?"
+dmesg 2>/dev/null | grep -i "$AP_IFACE" | tail -10 || echo "    No dmesg entries"
+
+echo ""
+echo "[4f] WiFiphy capabilities for this adapter:"
+PHY=$(iw dev "$AP_IFACE" info 2>/dev/null | grep wiphy | awk '{print $2}')
+if [[ -n "$PHY" ]]; then
+  echo "    Checking phy$PHY bands and frequencies..."
+  iw phy "phy$PHY" info 2>/dev/null | grep -A 50 "Frequencies:" | head -30 || true
+fi
 
 echo ""
 echo "[5] Does this chipset support AP mode?"
