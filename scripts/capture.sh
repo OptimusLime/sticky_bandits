@@ -2,7 +2,7 @@
 set -euo pipefail
 
 CMD="${1:-}"
-AP_IFACE="${AP_IFACE:-wlan0}"
+AP_IFACE="${AP_IFACE:-wlx00c0cab9645b}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CAP_DIR="$REPO_ROOT/captures"
 STATE_DIR="$REPO_ROOT/.state"
