@@ -9,10 +9,10 @@ info() { echo "[*] $*"; }
 ok() { echo "[+] $*"; }
 
 [[ "${EUID}" -eq 0 ]] || die "Run with sudo"
-[[ -n "${WIFI_PASS:-}" ]] || die "Set WIFI_PASS environment variable"
 
-# Configuration
+# Configuration - all passwords are paulsworld
 HOME_SSID="${HOME_SSID:-YouMeshedWithTheWrongWifi}"
+WIFI_PASS="${WIFI_PASS:-paulsworld}"
 AP_SSID="${AP_SSID:-sticky_bandits}"
 AP_PASS="${AP_PASS:-paulsworld}"
 INTERNAL_IFACE="wlp6s0"
