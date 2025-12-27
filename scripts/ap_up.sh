@@ -67,25 +67,42 @@ rm -f /etc/netplan/99-sticky-bandits.yaml
 # Clear DHCP leases to avoid stale entries
 rm -f /var/lib/misc/dnsmasq.leases
 
-# --- Clean up AP interface only (don't touch uplink!) ---
+# --- Clean up AP interface ---
 info "Resetting AP interface $AP_IFACE..."
 ip addr flush dev "$AP_IFACE" 2>/dev/null || true
+
+# --- Remove any stale AP subnet IP from uplink interface ---
+# This can happen if a previous run assigned IPs incorrectly
+AP_SUBNET="${AP_ADDR%.*}"  # e.g., 192.168.60
+info "Removing any stale $AP_SUBNET.x addresses from $UPLINK_IFACE..."
+for STALE_IP in $(ip addr show "$UPLINK_IFACE" 2>/dev/null | grep -oP "inet ${AP_SUBNET}\.[0-9]+/[0-9]+" || true); do
+  warn "Removing stale IP $STALE_IP from $UPLINK_IFACE"
+  ip addr del "$STALE_IP" dev "$UPLINK_IFACE" 2>/dev/null || true
+done
 
 # --- Make sure uplink is connected and has internet ---
 info "Ensuring uplink $UPLINK_IFACE is connected..."
 nmcli dev set "$UPLINK_IFACE" managed yes 2>/dev/null || true
 
-# Wait for uplink to get an IP if it doesn't have one
-UPLINK_IP=$(ip addr show "$UPLINK_IFACE" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | head -1 || true)
+# Wait for uplink to get an IP if it doesn't have one (excluding AP subnet)
+UPLINK_IP=$(ip addr show "$UPLINK_IFACE" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | grep -v "^${AP_SUBNET}\." | head -1 || true)
 if [[ -z "$UPLINK_IP" ]]; then
-  warn "Uplink $UPLINK_IFACE has no IP, waiting for DHCP..."
+  warn "Uplink $UPLINK_IFACE has no valid IP, waiting for DHCP..."
   sleep 5
-  UPLINK_IP=$(ip addr show "$UPLINK_IFACE" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | head -1 || true)
+  UPLINK_IP=$(ip addr show "$UPLINK_IFACE" 2>/dev/null | grep -oP 'inet \K[0-9.]+' | grep -v "^${AP_SUBNET}\." | head -1 || true)
 fi
 
 if [[ -z "$UPLINK_IP" ]]; then
-  die "Uplink $UPLINK_IFACE has no IP address. Connect it to a network first."
+  echo "Current IPs on $UPLINK_IFACE:"
+  ip addr show "$UPLINK_IFACE"
+  die "Uplink $UPLINK_IFACE has no valid IP address (not on $AP_SUBNET.x). Connect it to a network first."
 fi
+
+# Sanity check: uplink IP should NOT be on the AP subnet
+if [[ "$UPLINK_IP" == ${AP_SUBNET}.* ]]; then
+  die "Uplink IP $UPLINK_IP is on AP subnet $AP_SUBNET.x - this is wrong!"
+fi
+
 info "Uplink $UPLINK_IFACE has IP: $UPLINK_IP"
 
 # Check internet connectivity
