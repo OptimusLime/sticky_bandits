@@ -80,20 +80,12 @@ rsn_pairwise=CCMP
 # Required for iOS
 wmm_enabled=1
 
-# Max stations
-max_num_sta=10
-
 # Broadcast
 ignore_broadcast_ssid=0
 
-# Accept all MAC addresses
-macaddr_acl=0
-
-# Logging - max verbosity
+# Logging
 logger_syslog=-1
-logger_syslog_level=0
-logger_stdout=-1
-logger_stdout_level=0
+logger_syslog_level=2
 EOF
 
 # Optionally add 802.11d
