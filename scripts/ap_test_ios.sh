@@ -78,12 +78,12 @@ ssid=$SSID
 hw_mode=g
 channel=$CHANNEL
 
-# Auth
+# Auth - WPA1+WPA2 mixed mode for mt76 compatibility
 auth_algs=1
-wpa=2
+wpa=3
 wpa_passphrase=$PASSPHRASE
 wpa_key_mgmt=WPA-PSK
-wpa_pairwise=CCMP
+wpa_pairwise=TKIP CCMP
 rsn_pairwise=CCMP
 
 # Required for iOS
