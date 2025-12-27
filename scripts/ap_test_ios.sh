@@ -42,24 +42,37 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Stop everything
+# Kill everything that could hold the interface
+info "Killing interfering processes..."
 systemctl stop hostapd 2>/dev/null || true
 systemctl stop dnsmasq 2>/dev/null || true
+systemctl stop NetworkManager 2>/dev/null || true
 pkill -9 hostapd 2>/dev/null || true
 pkill -9 dnsmasq 2>/dev/null || true
+pkill -9 wpa_supplicant 2>/dev/null || true
+rfkill unblock wifi 2>/dev/null || true
 sleep 1
 
 # Set regulatory domain
 iw reg set US 2>/dev/null || true
 
-# Configure interface
-nmcli dev set "$AP_IFACE" managed no 2>/dev/null || true
-ip link set "$AP_IFACE" down 2>/dev/null || true
+# Force interface to AP mode BEFORE hostapd
+info "Setting interface to AP mode..."
+ip link set "$AP_IFACE" down
+sleep 1
+iw dev "$AP_IFACE" set type __ap
 sleep 1
 ip addr flush dev "$AP_IFACE" 2>/dev/null || true
 ip addr add "$AP_ADDR/24" dev "$AP_IFACE"
 ip link set "$AP_IFACE" up
 sleep 1
+
+# Verify AP mode
+if iw dev "$AP_IFACE" info | grep -q "type AP"; then
+  info "Interface is in AP mode"
+else
+  die "Failed to set interface to AP mode"
+fi
 
 # Build hostapd config
 cat > /etc/hostapd/hostapd.conf <<EOF
